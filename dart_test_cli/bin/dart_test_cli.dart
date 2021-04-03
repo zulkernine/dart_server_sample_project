@@ -1,26 +1,28 @@
-import 'package:shelf/shelf.dart' as shelf;
+import 'package:dart_test_cli/API.dart';
+import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
+import 'package:shelf_router/shelf_router.dart';
 import 'dart:io';
 
 void main(List<String> arguments) async {
-  var handler = const shelf.Pipeline()
-      .addMiddleware(shelf.logRequests())
-      .addHandler(_echoRequest);
+  final app = Router();
 
-  var server = await io.serve(handler, 'localhost', 8083);
+  app.get('/', _defaultRoute);
 
-  // Enable content compression
-  server.autoCompress = true;
+  app.mount('/api/', Api().router);
 
-  // var contents = await File('index.html').readAsString();
-  // print(contents);
+  app.all('/<ignored|.*>', (Request request) {
+    return Response.notFound('Page not found');
+  });
+
+  var server = await io.serve(app , 'localhost', 8083);
 
   print('Serving at http://${server.address.host}:${server.port}');
 }
 
-Future<shelf.Response> _echoRequest(shelf.Request request) async {
+Future<Response> _defaultRoute(Request request) async {
   String content;
-  content = await File('index.html').readAsString();
+  content = await File('./web/index.html').readAsString();
   print(content);
-  return shelf.Response.ok(content, headers: {'Content-type': 'text/html'});
+  return Response.ok(content, headers: {'Content-type': 'text/html'});
 }
